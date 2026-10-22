@@ -31,6 +31,10 @@ const { job } = Astro.props;
             {job.remote && <Tag color="slate">Remote</Tag>}
         </div>
 
+        <p class="text-sm text-slate-400 mb-4" data-testid="role-location">
+            {job.location}
+        </p>
+
         <p class="text-slate-400 mb-4 text-sm line-clamp-3" data-testid="role-summary">
             {job.summary}
         </p>
