@@ -31,14 +31,14 @@ test.describe('Open roles listing', () => {
         { title: 'Senior Frontend Engineer', location: 'Remote (US & Canada)' },
         { title: 'Financial Analyst', location: 'Woodinville, WA, USA' },
     ]) {
-        test(`keeps ${title} location on details, not starter cards`, async ({ page }) => {
+        test(`shows ${title} location on starter cards and details`, async ({ page }) => {
             await page.goto('/');
             const card = page.getByTestId('role-card').filter({
                 has: page.getByRole('heading', { name: title, exact: true }),
             });
 
             await expect(card).toBeVisible();
-            await expect(card.getByText(location, { exact: true })).toHaveCount(0);
+            await expect(card.getByText(location, { exact: true })).toHaveCount(1);
             await card.click();
             await expect(page.getByText(location, { exact: true })).toBeVisible();
         });
