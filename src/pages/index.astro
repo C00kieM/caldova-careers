@@ -3,7 +3,7 @@ import { getCollection } from 'astro:content';
 import Layout from '../layouts/Layout.astro';
 import RoleCard from '../components/RoleCard.astro';
 import EmptyState from '../components/EmptyState.astro';
-import { sortByNewest } from '../lib/jobs';
+import { getUniqueJobValues, sortByNewest } from '../lib/jobs';
 import type { Job } from '../types/job';
 
 export const prerender = true;
@@ -12,6 +12,8 @@ const entries = await getCollection('jobs');
 const jobs: Job[] = sortByNewest(
     entries.map((entry) => ({ slug: entry.id, ...entry.data })),
 );
+const departments = getUniqueJobValues(jobs, 'department');
+const locations = getUniqueJobValues(jobs, 'location');
 ---
 
 <Layout title="Caldova Careers — Open roles">
@@ -29,12 +31,84 @@ const jobs: Job[] = sortByNewest(
     {jobs.length === 0 ? (
       <EmptyState text="There are no open roles right now. Check back soon." />
     ) : (
-      <div
-        class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
-        data-testid="roles-grid"
-      >
-        {jobs.map((job) => <RoleCard job={job} />)}
-      </div>
+      <>
+        <form
+          class="mb-8 grid gap-6 rounded-xl border border-slate-700 bg-slate-800/50 p-6 sm:grid-cols-2"
+          data-testid="role-filters"
+          data-jobs={JSON.stringify(jobs)}
+        >
+          <fieldset>
+            <legend class="mb-3 text-sm font-semibold text-slate-100">Department</legend>
+            <div class="grid gap-2">
+              {departments.map((department) => (
+                <label class="flex items-center gap-3 text-sm text-slate-300">
+                  <input
+                    type="checkbox"
+                    name="department"
+                    value={department}
+                    class="h-4 w-4 rounded border-slate-600 bg-slate-900 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                    data-testid="department-filter"
+                  />
+                  <span>{department}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend class="mb-3 text-sm font-semibold text-slate-100">Location</legend>
+            <div class="grid gap-2">
+              {locations.map((location) => (
+                <label class="flex items-center gap-3 text-sm text-slate-300">
+                  <input
+                    type="checkbox"
+                    name="location"
+                    value={location}
+                    class="h-4 w-4 rounded border-slate-600 bg-slate-900 text-blue-600 focus:ring-2 focus:ring-blue-500"
+                    data-testid="location-filter"
+                  />
+                  <span>{location}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+          <div class="flex items-center gap-4 sm:col-span-2">
+            <button
+              type="button"
+              class="rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-slate-900"
+              data-testid="reset-filters"
+            >
+              Reset filters
+            </button>
+            <p class="text-sm text-slate-400" data-testid="filter-count" aria-live="polite">
+              Showing {jobs.length} roles
+            </p>
+          </div>
+        </form>
+
+        <div data-testid="filtered-empty-state" hidden>
+          <EmptyState>
+            <p data-testid="empty-state-text" class="text-slate-300">
+              No roles match the selected filters.
+            </p>
+            <button
+              type="button"
+              class="mt-4 rounded-lg bg-blue-700 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-offset-2 focus:ring-offset-slate-900"
+              data-testid="empty-reset-filters"
+            >
+              Reset filters
+            </button>
+          </EmptyState>
+        </div>
+
+        <div
+          class="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
+          data-testid="roles-grid"
+        >
+          {jobs.map((job) => <RoleCard job={job} />)}
+        </div>
+      </>
     )}
   </div>
 </Layout>
+
+<script src="../scripts/role-filters.ts"></script>

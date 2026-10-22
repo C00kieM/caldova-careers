@@ -31,18 +31,69 @@ test.describe('Open roles listing', () => {
         { title: 'Senior Frontend Engineer', location: 'Remote (US & Canada)' },
         { title: 'Financial Analyst', location: 'Woodinville, WA, USA' },
     ]) {
-        test(`keeps ${title} location on details, not starter cards`, async ({ page }) => {
+        test(`shows ${title} location on the card and details`, async ({ page }) => {
             await page.goto('/');
             const card = page.getByTestId('role-card').filter({
                 has: page.getByRole('heading', { name: title, exact: true }),
             });
 
             await expect(card).toBeVisible();
-            await expect(card.getByText(location, { exact: true })).toHaveCount(0);
+            await expect(card.getByText(location, { exact: true })).toBeVisible();
             await card.click();
             await expect(page.getByText(location, { exact: true })).toBeVisible();
         });
     }
+
+    test('filters by department and persists the selection in the URL', async ({ page }) => {
+        await page.goto('/');
+        await page.getByLabel('Finance', { exact: true }).check();
+
+        await expect(page.locator('[data-testid="role-card"]:visible')).toHaveCount(2);
+        await expect(page).toHaveURL(/department=Finance/);
+    });
+
+    test('filters by location', async ({ page }) => {
+        await page.goto('/');
+        await page.getByLabel('Woodinville, WA, USA', { exact: true }).check();
+
+        await expect(page.locator('[data-testid="role-card"]:visible')).toHaveCount(3);
+        await expect(page.getByTestId('filter-count')).toHaveText('Showing 3 roles');
+    });
+
+    test('combines department and location filters with AND behavior', async ({ page }) => {
+        await page.goto('/');
+        await page.getByLabel('Finance', { exact: true }).check();
+        await page.getByLabel('Woodinville, WA, USA', { exact: true }).check();
+
+        await expect(page.locator('[data-testid="role-card"]:visible')).toHaveCount(1);
+        await expect(
+            page.getByTestId('role-card').filter({
+                has: page.getByRole('heading', { name: 'Financial Analyst', exact: true }),
+            }),
+        ).toBeVisible();
+    });
+
+    test('resets filters and restores all roles', async ({ page }) => {
+        await page.goto('/?department=Finance&location=Woodinville%2C%20WA%2C%20USA');
+        await expect(page.locator('[data-testid="role-card"]:visible')).toHaveCount(1);
+
+        await page.getByTestId('reset-filters').click();
+
+        await expect(page.locator('[data-testid="role-card"]:visible')).toHaveCount(expectedRoleCount);
+        await expect(page).toHaveURL(/\/$/);
+    });
+
+    test('shows a clear empty state for incompatible filters', async ({ page }) => {
+        await page.goto('/');
+        await page.getByLabel('Technology', { exact: true }).check();
+        await page.getByLabel('Woodinville, WA, USA', { exact: true }).check();
+
+        await expect(page.locator('[data-testid="role-card"]:visible')).toHaveCount(0);
+        await expect(page.getByTestId('filtered-empty-state')).toBeVisible();
+        await expect(page.getByTestId('empty-state-text')).toHaveText(
+            'No roles match the selected filters.',
+        );
+    });
 
     test('has no automatically detectable accessibility violations', async ({ page }) => {
         await page.goto('/');

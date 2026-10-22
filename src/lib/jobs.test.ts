@@ -1,5 +1,10 @@
 import { describe, it, expect } from 'vitest';
-import { sortByNewest, formatPostedDate } from './jobs';
+import {
+    filterJobs,
+    formatPostedDate,
+    getUniqueJobValues,
+    sortByNewest,
+} from './jobs';
 import type { Job } from '../types/job';
 
 function makeJob(slug: string, postedDate: string): Job {
@@ -40,5 +45,49 @@ describe('formatPostedDate', () => {
 
     it('returns the raw value when the date is unparseable', () => {
         expect(formatPostedDate('not-a-date')).toBe('not-a-date');
+    });
+});
+
+describe('getUniqueJobValues', () => {
+    it('returns sorted unique departments and locations', () => {
+        const jobs = [
+            { ...makeJob('a', '2027-01-01'), department: 'Technology', location: 'Berlin' },
+            { ...makeJob('b', '2027-01-02'), department: 'Finance', location: 'Austin' },
+            { ...makeJob('c', '2027-01-03'), department: 'Finance', location: 'Berlin' },
+        ];
+
+        expect(getUniqueJobValues(jobs, 'department')).toEqual(['Finance', 'Technology']);
+        expect(getUniqueJobValues(jobs, 'location')).toEqual(['Austin', 'Berlin']);
+    });
+});
+
+describe('filterJobs', () => {
+    const jobs = [
+        { ...makeJob('technology-berlin', '2027-01-01'), department: 'Technology', location: 'Berlin' },
+        { ...makeJob('technology-austin', '2027-01-02'), department: 'Technology', location: 'Austin' },
+        { ...makeJob('finance-berlin', '2027-01-03'), department: 'Finance', location: 'Berlin' },
+    ];
+
+    it('filters by department and location independently', () => {
+        expect(filterJobs(jobs, ['Technology']).map((job) => job.slug)).toEqual([
+            'technology-berlin',
+            'technology-austin',
+        ]);
+        expect(filterJobs(jobs, [], ['Berlin']).map((job) => job.slug)).toEqual([
+            'technology-berlin',
+            'finance-berlin',
+        ]);
+    });
+
+    it('combines selected departments and locations with AND behavior', () => {
+        expect(filterJobs(jobs, ['Technology', 'Finance'], ['Berlin'])).toEqual([
+            jobs[0],
+            jobs[2],
+        ]);
+    });
+
+    it('returns all jobs with no filters and no jobs for unmatched values', () => {
+        expect(filterJobs(jobs)).toEqual(jobs);
+        expect(filterJobs(jobs, ['Unknown'])).toEqual([]);
     });
 });
